@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Keyword Results</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Arama Sonuçları: {{ keyword }}</h1>
+        <div class="row">
+            {% for book in books %}
+            <div class="col-md-3">
+                <div class="book-card">
+                    <img src="{{ book.image_url }}" alt="{{ book.kitap_adi }}" class="img-fluid">
+                    <div class="book-title">{{ book.kitap_adi }}</div>
+                    <div>{{ book.fiyat }} TL</div>
+                    <a href="{{ url_for('book_detail', book_id=book.id) }}" class="btn btn-primary mt-2">Detaylar</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html> 

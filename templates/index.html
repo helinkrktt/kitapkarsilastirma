@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Kitap Arama</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            background-image: url("{{ url_for('static', filename='images/uni.jpg') }}");
+            background-size: cover;
+            background-position: center;
+            min-height: 100vh;
+        }
+        .search-container {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 2rem;
+            border-radius: 10px;
+            margin-top: 2rem;
+        }
+        #autocomplete-results {
+            position: absolute;
+            width: 100%;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 0 0 4px 4px;
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .auth-buttons {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+        }
+        .auth-buttons .btn {
+            margin-left: 0.5rem;
+        }
+        .user-info {
+            color: white;
+            margin-right: 1rem;
+        }
+        .search-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            width: 100%;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .suggestion-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .suggestion-item:hover {
+            background-color: #f8f9fa;
+        }
+        .form-group {
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <!-- Giriş/Kayıt Butonları -->
+    <div class="auth-buttons">
+        {% if session.get('user_id') %}
+            <span class="user-info">Hoş geldin, {{ session.get('username') }}</span>
+            <a href="{{ url_for('logout') }}" class="btn btn-outline-light">Çıkış Yap</a>
+        {% else %}
+            <a href="{{ url_for('login') }}" class="btn btn-outline-light">Giriş Yap / Kayıt Ol</a>
+        {% endif %}
+    </div>
+
+    <div class="container">
+        <div class="search-container">
+            <h1 class="text-center mb-4">Hayal Ettiğin Üniversite Bir Tık Uzağında</h1>
+            <p class="text-center mb-4">En iyi sınava hazırlık kitaplarına ve fiyat karşılaştırmalarına göz atarak başarıya bir adım daha yaklaşın.</p>
+            <form id="searchForm" method="post" action="{{ url_for('search') }}" class="mb-4">
+                <div class="form-group">
+                    <input type="text" 
+                           id="search-input" 
+                           name="kitap_adi" 
+                           class="form-control form-control-lg" 
+                           placeholder="Kitap adı yazın..." 
+                           required 
+                           autocomplete="off">
+                    <div class="search-suggestions" id="search-suggestions"></div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg btn-block">Ara</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script>
+    $(document).ready(function() {
+        const searchInput = $('#search-input');
+        const searchSuggestions = $('#search-suggestions');
+        let selectedIndex = -1;
+
+        searchInput.on('input', function() {
+            const query = $(this).val().trim();
+            
+            if (query.length >= 2) {
+                $.ajax({
+                    url: '{{ url_for("autocomplete") }}',
+                    data: { q: query },
+                    success: function(data) {
+                        if (data.length > 0) {
+                            showSuggestions(data);
+                        } else {
+                            searchSuggestions.hide();
+                        }
+                    }
+                });
+            } else {
+                searchSuggestions.hide();
+            }
+        });
+
+        function showSuggestions(items) {
+            searchSuggestions.empty();
+            
+            items.forEach(item => {
+                searchSuggestions.append(`
+                    <div class="suggestion-item">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-search mr-2 text-muted"></i>
+                            <span>${item}</span>
+                        </div>
+                    </div>
+                `);
+            });
+
+            searchSuggestions.show();
+        }
+
+        $(document).on('click', '.suggestion-item', function() {
+            const selectedBook = $(this).text().trim();
+            searchInput.val(selectedBook);
+            searchSuggestions.hide();
+            
+            $.ajax({
+                url: '{{ url_for("search") }}',
+                method: 'POST',
+                data: { kitap_adi: selectedBook },
+                success: function(response) {
+                    if (response.redirect_url) {
+                        window.location.href = response.redirect_url;
+                    } else if (response.error) {
+                        alert(response.error);
+                    }
+                },
+                error: function() {
+                    alert('Bir hata oluştu!');
+                }
+            });
+        });
+
+        searchInput.on('keydown', function(e) {
+            const items = $('.suggestion-item');
+            
+            switch(e.keyCode) {
+                case 40: // Aşağı ok
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                    updateSelection(items);
+                    break;
+                case 38: // Yukarı ok
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, -1);
+                    updateSelection(items);
+                    break;
+                case 13: // Enter
+                    e.preventDefault();
+                    if (selectedIndex > -1) {
+                        $(items[selectedIndex]).click();
+                    }
+                    break;
+            }
+        });
+
+        function updateSelection(items) {
+            items.removeClass('selected');
+            if (selectedIndex > -1) {
+                const selected = items.eq(selectedIndex);
+                selected.addClass('selected');
+                searchInput.val(selected.text().trim());
+            }
+        }
+
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('.form-group').length) {
+                searchSuggestions.hide();
+            }
+        });
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ book.kitap_adi }}</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .store-price {
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+        .out-of-stock {
+            color: #dc3545;
+            font-style: italic;
+            background-color: #ffe6e6;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+        .price-value {
+            font-weight: bold;
+            color: #28a745;
+            background-color: #e6ffe6;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+        .store-name {
+            color: #333;
+            font-weight: 500;
+        }
+        .card {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card-title {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .list-group-item {
+            transition: all 0.2s ease;
+        }
+        .list-group-item:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">{{ book.kitap_adi }}</h1>
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Fiyat Karşılaştırması</h5>
+                <div class="list-group">
+                    {% for magaza, fiyat in book.fiyatlar.items() %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="store-name">{{ magaza }}</span>
+                        {% if fiyat is none %}
+                            <span class="store-price out-of-stock">Bu sitede mevcut değil</span>
+                        {% else %}
+                            <span class="store-price price-value">{{ "%.2f"|format(fiyat) }} TL</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <a href="/" class="btn btn-secondary mt-3">Ana Sayfaya Dön</a>
+    </div>
+</body>
+</html>
